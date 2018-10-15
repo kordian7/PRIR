@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <chrono>
 #include <opencv2/opencv.hpp>
+#include "omp.h"
 
 using namespace cv;
 using namespace std;
@@ -25,14 +27,17 @@ int calculateNewPixelChannelValue(Mat channel, int row, int col) {
 
 int main(int argc, char** argv )
 {
-    if ( argc != 3 )
+    if ( argc != 4 )
     {
-        printf("Pass image input and output as args");
+        printf("Pass threads number, image input, image output as args\n");
         return -1;
     }
+	int threadsNumber;
+	threadsNumber= strtol(argv[1], NULL, 10);
+	omp_set_num_threads(threadsNumber);
     Mat img;
     Mat outputImg;
-    img = imread( argv[1], 1 );
+    img = imread( argv[2], 1 );
     if ( !img.data )
     {
         printf("Problem with image \n");
@@ -43,15 +48,23 @@ int main(int argc, char** argv )
     split(img, rgbInputChannels);
     split(img, rgbOutputChannels);
 
-    for (int i = 2; i < img.rows - 2; i++) {
-        for (int j = 2; j < img.cols - 2; j++) {
+	int margin = maskSize / 2;
+
+	auto startTime = std::chrono::high_resolution_clock::now();
+	int i,j;
+	#pragma omp parallel for private(i,j) schedule(dynamic)
+    for (i = margin; i < img.rows - margin; i++) {
+        for (j = margin; j < img.cols - margin; j++) {
             rgbOutputChannels[0].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[0], i, j);
             rgbOutputChannels[1].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[1], i, j);
             rgbOutputChannels[2].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[2], i, j);
         }
     }
+	auto finishTime = std::chrono::high_resolution_clock::now();
+	auto msDuration = std::chrono::duration_cast<std::chrono::milliseconds>(finishTime - startTime);
+	cout << "Czas: " << msDuration.count() << "ms\n"	;
     merge(rgbOutputChannels, outputImg);
-    imwrite(argv[2], outputImg);
+    imwrite(argv[3], outputImg);
     waitKey(0);
     return 0;
 }
