@@ -1,0 +1,2 @@
+install gnuplot
+install epstopdf
