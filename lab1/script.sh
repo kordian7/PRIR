@@ -62,7 +62,7 @@ clean() {
 }
 
 compile
-run "mona_lisa.jpeg" 4
+run $1 $2
 create_plots
 create_pdf
 clean
