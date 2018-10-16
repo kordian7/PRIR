@@ -92,46 +92,23 @@ int calculateNewPixelChannelValue(Mat channel, int row, int col) {
 \end{lstlisting}
 
 
-Poniżej zamieszone są wykresy na dowód posiadania umiejętności obsługi pakietu biurowego Microsoft Office Excel lub LibreOffice Calc. Można tutaj również pochawlić się znajomością małego lecz potężnego programu gnuplot.
+Poniższe wykresy 1 i 2, przedstawiające zależność czasową oraz przyspieszenia zostały oparte na średnich wynikach programu uruchamianych lokalnie na maszynie wirtualnej. Wykorzystany został 6 rdzeniowy procesor Intel z technologią Hyperthreadingu.
 
-\begin{figure}[!h]
+\begin{figure}[!ht]
 	\centering
   \includegraphics[width=0.6\textwidth]{dane/wykresCzas.eps}
   \caption{Wykres zależności czasu wykonywania obliczeń od liczby wątków}
 \end{figure}
 
-\begin{figure}[!h]
+\begin{figure}[!ht]
 	\centering
   \includegraphics[width=0.6\textwidth]{dane/wykresPrzyspieszenie.eps}
   \caption{Wykres przyspieszenia działania programu w zależności od liczby wątków}
 \end{figure}
 
-W celu ułatwienia pracy Prowadzącemu warto wykresy podpisać, aby Prowadzący omyłkowo nie przyjął, że dany wykres przedstawia średnią miesięczną temperaturę w Bangladeszu na przełomie lat 1975-1982, ponieważ taki wykres byłby nieodpowiedni, przez co sprawozdanie byłoby niezaliczone. Łatwo zauważyć, że każdy wykres w przestrzeni 2D posiada dwie osie i z grzeczności należy je opisać. Osie posiadają jednostki, które też warto przytoczyć.
 
-Czasem w sprawozdaniu warto przytoczyć kilka zalet danego rozwiązania i wypisać je jako lista:
-\begin{lista}
- \item Pierwszą zaletą jest to, że jest.
- \item Druga zaleta jest również obecna.
- \item Trzecia zaleta jest już troche naciągana.
- \item Czwarta zaleta jest wadą, czyli zaletą ujemną.
-\end{lista}
+Jak widać dzięki zastosowaniu technologii OpenMP, wykorzystując dostępne wątki, udało się znacząco przyspieszyć wykonywanie programu. Uzyskane rzeczywiste przyspieszenie jest bliskie idealnemu, co może świadczyć o tym, że powyższa klasa problemów nadaje się całkiem dobrze do wykorzystywania obliczeń wielowątkowych.
+Jak można zauważyć na wykresie przyspieszenie działania programu wzrastało wraz z liczbą wykorzystywanych wątków jedynie do 6 wątku. Potem wraz ze wzrostem liczby wątków program nie wykazywał już aż tak dużego przyspieszenia, a nawet potrafił minimalnie zwolnić. Można więc wyciągnąć wniosek, że technologia Hyperthreadingu, wykorzystywana w procesorach Intela, nie działa aż tak wydajnie przy takich obliczeniach. Do takiego zrównoleglania niewątpliwie lepszy byłby procesor z większą ilością rdzeni fizycznych.
 
-Jeśli zaszłaby konieczność zestawienia danych wartości w tabeli to również jest taka możliwość.
-
-\begin{table}[!hbp]
-\centering
-\begin{tabular}{|p{5cm}|c|}
-\hline 
-Zalety & Wady \tabularnewline
-\hline 
- Ładne, kolorowe & Brak\tabularnewline
- Szybkie, działające & Brak\tabularnewline
-\hline
-\end{tabular}
-\caption{Podpis bardzo wartoścowej tabeli z danymi}
-\end{table}
-
-
-W sprawozdaniu muszą znaleźć się wnioski. Wnioski stanowią przesłankę, o tym iż osoba je pisząca, która ubiega się o tytuł magistra inżyniera, wie co robi. Osoba taka często jest w stanie określić czemu miało służyć dane ćwiczenie, a także ocenić w jakim stopniu udało się rozwiązać dane zagadnienie i gdzie napotkano problemy.
 
 \end{document}
