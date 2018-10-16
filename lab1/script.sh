@@ -27,7 +27,7 @@ run() {
 		fi
 		ACC=$(echo "scale=4; $FIRST/$CZAS" | bc -l)
 		echo "$i $CZAS" >> dane/times.txt
-		echo "$i $ACC" >> dane/acc.txt
+		echo "$i $i $ACC" >> dane/acc.txt
 	done
 }
 
