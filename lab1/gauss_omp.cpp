@@ -65,7 +65,7 @@ int main(int argc, char** argv )
 
     startTime = omp_get_wtime();
 	int i,j;
-	#pragma omp parallel for default(shared) private(i,j) schedule(runtime) num_threads(threadsNumber)
+	#pragma omp parallel for default(shared) private(i,j) schedule(static) num_threads(threadsNumber)
     for (i = margin; i < inputImg.rows - margin; i++) {
         for (j = margin; j < inputImg.cols - margin; j++) {
             rgbOutputChannels[0].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[0], i, j);

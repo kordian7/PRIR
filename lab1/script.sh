@@ -54,7 +54,7 @@ create_plots() {
 }
 
 create_pdf() {
-	pdflatex zad1.tex
+	pdflatex dok.tex
 }
 
 clean() {

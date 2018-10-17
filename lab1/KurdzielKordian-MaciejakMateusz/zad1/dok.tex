@@ -65,9 +65,9 @@ Grupa 1 & Kordian Kurdziel, Mateusz Maciejak & \ddmmyyyydate\today \tabularnewli
 
 Zadanie programu było rozmycie obrazu podanego na wejściu za pomocą algorytmu Gaussa z maską 5x5. W celu poprawy wydajności programu do zrównoleglenia jego działania należało wykorzystać OpenMP.
 
-Poniższy fragment kodu w pierwszej pętli for jest wykonywany równolegle w oddzielnych wątkach, dzięki zastosowaniu dyrektywy pragma omp parallel for. Wartość każdego kanału RGB jest liczona oddzielnie w funkcji calculateNewPixelChannelValue()
+Poniższy fragment kodu w pierwszej pętli for jest wykonywany równolegle w oddzielnych wątkach, dzięki zastosowaniu dyrektywy pragma omp parallel for. W programie użyto dyrektywę schedule z opcją static. Oznacza ona, że każdemu wątkowi zostanie przypisana taka sama ilość wykonywanych zadań. Zadania te powinny wykonywać się w tym samym czasie, więc taki przydział wydaje się tu odpowiedni - nie będzie stwarzał dodatkowych narzutów związanych z dynamicznym przydziałem zadań. Wartość każdego kanału RGB jest liczona oddzielnie w funkcji calculateNewPixelChannelValue()
 \begin{lstlisting}
-#pragma omp parallel for default(shared) private(i,j) schedule(runtime) num_threads(threadsNumber)
+#pragma omp parallel for default(shared) private(i,j) schedule(static) num_threads(threadsNumber)
 for (i = margin; i < inputImg.rows - margin; i++) {
 	for (j = margin; j < inputImg.cols - margin; j++) {
 		rgbOutputChannels[0].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[0], i, j);
