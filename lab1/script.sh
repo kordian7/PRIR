@@ -58,7 +58,7 @@ create_pdf() {
 }
 
 clean() {
-	rm -rf zad1.log zad1.aux wykres*
+	rm -rf zad1.log zad1.aux
 }
 
 compile
