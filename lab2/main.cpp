@@ -56,19 +56,10 @@ void receive(void * data, int size, MPI_Datatype type = MPI_LONG, int target = 0
 }
 
 Mat cutPicture(Mat picture, int x, int y, int width, int height){
-    cout << "CUT X: " << x << endl;
-    cout << "CUT y: " << y << endl;
-    cout << "CUT w: " << width << endl;
-    cout << "CUT h: " << height << endl;
-
 	cv::Rect myROI(x, y, width, height);
-
 	cv::Mat croppedRef(picture, myROI);
 	cv::Mat cropped;
 	croppedRef.copyTo(cropped);
-	
-    cout << "cropped img rows: " << cropped.rows << endl;
-    cout << "cropped img cols: " << cropped.cols << endl; 
     return cropped;
 }
 
@@ -91,9 +82,6 @@ Mat gauss(Mat img) {
     split(img, rgbInput);
     split(img, rgbOutput);
 
-    cout << "img1 rows: " << img.rows << endl;
-    cout << "img1 cols: " << img.cols << endl; 
-
     for (int i = margin; i < img.rows - margin; ++i) {
         for (int j = margin; j < img.cols - margin; ++j) {
             rgbOutput[0].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInput[0], i, j);
@@ -103,8 +91,6 @@ Mat gauss(Mat img) {
     }
     merge(rgbOutput, output);
 
-	cout << "img2 rows: " << output.rows << endl;
-    cout << "img2 cols: " << output.cols << endl; 
     return output;
 }
                                         
@@ -122,6 +108,12 @@ int main(int argc, char** argv )
     MPI_Comm_size(commmunicate, &numberOfProcesses);
 
     if (isMainProcess(rank)){
+
+		if (numberOfProcesses < 2) {
+            printf("Incorret number of threads\n");
+			MPI_Finalize();
+            return -1;
+		}
         
         if ( argc != 3 )
         {
@@ -135,11 +127,6 @@ int main(int argc, char** argv )
 
         inputImg = imread( srcImagePath, CV_LOAD_IMAGE_COLOR);
 
-        cout << "ORIGINAL IMAGE ROWS: " << inputImg.rows << endl;
-        cout << "ORIGINAL IMAGE COLS: " << inputImg.cols << endl;
-
-
-
         if ( !inputImg.data )
         {
             printf("Problem with image \n");
@@ -151,11 +138,7 @@ int main(int argc, char** argv )
 
         imgSplitSize = inputImg.rows / (numberOfProcesses - 1);
 		int lastImgSplitSize = imgSplitSize + inputImg.rows % (numberOfProcesses - 1);
-cout << "split " << imgSplitSize << ", lastSplit " << lastImgSplitSize << endl;
         startTime = MPI_Wtime();
-
-        cout << "BEFORE FOR LOOP MAIN PROCESS " << rank << endl;
-        cout << "NUMBER OF PROCESSES:  " << numberOfProcesses << endl;
 
         // Split picture and send to other processes
         for (int i = 1; i < numberOfProcesses; ++i){
@@ -167,10 +150,6 @@ cout << "split " << imgSplitSize << ", lastSplit " << lastImgSplitSize << endl;
 			partOfImg = addBorders(partOfImg);
             x = partOfImg.rows;
             y = partOfImg.cols;
-
-            cout << "X " << x << endl;
-            cout << "Y " << y << endl;
-            cout << "DATA: " << partOfImg.data << endl;
             
             send(&x, 1, MPI_INT, i, START_VALUE_TAG);
             send(&y, 1, MPI_INT, i, END_VALUE_TAG);
@@ -188,19 +167,13 @@ cout << "split " << imgSplitSize << ", lastSplit " << lastImgSplitSize << endl;
             receive(partOfImg.data, x*y*3, MPI_BYTE, i, MULTIPLY_ID*i+DATA_TAG);
 			partOfImg = removeBorders(partOfImg);
 
-        cout << "new IMAGE ROWS: " << partOfImg.rows << endl;
-        cout << "new IMAGE COLS: " << partOfImg.cols << endl;
             outputImg.push_back(partOfImg);
 	    }
 
     } else {
-        cout << "SLAVE PROCESSESS: " << rank << endl;
 
         receive(&x, 1, MPI_INT, MASTER_PROCESS, START_VALUE_TAG);
         receive(&y, 1, MPI_INT, MASTER_PROCESS, END_VALUE_TAG);
-
-        cout << "RECEIVE START: " << x << endl;
-        cout << "RECEIVE END: " << y << endl;
 
         partOfImg = Mat(x, y, CV_8UC3);
         receive(partOfImg.data, x * y * 3, MPI_BYTE, MASTER_PROCESS, DATA_TAG);

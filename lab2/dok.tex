@@ -48,7 +48,6 @@
   basicstyle=\footnotesize,
   identifierstyle=\color{magenta},
   keywordstyle=\color[rgb]{0,0,1},
-  commentstyle=\color{Darkgreen},
   stringstyle=\color{red}
   }
 
@@ -127,17 +126,17 @@ Poniższe wykresy 1 i 2, przedstawiające zależność czasową oraz przyspiesze
 
 \begin{figure}[!ht]
 	\centering
-  \includegraphics[width=0.6\textwidth]{wykresCzas-eps-converted-to.pdf}
+  \includegraphics[width=0.5\textwidth]{wykresCzas.pdf}
   \caption{Wykres zależności czasu wykonywania obliczeń od liczby wątków}
 \end{figure}
 
 \begin{figure}[!ht]
 	\centering
-  \includegraphics[width=0.6\textwidth]{wykresPrzyspieszenie-eps-converted-to.pdf}
+  \includegraphics[width=0.5\textwidth]{wykresPrzyspieszenie.pdf}
   \caption{Wykres przyspieszenia działania programu w zależności od liczby wątków}
 \end{figure}
+Można zauważyć, że po przekroczeniu fizycznej liczby rdzeni wydajność przestaje rosnąć, a więc HyperThreading nie dodaje zauważalnej różnicy w tym zadaniu. Po dalszym zwiększaniu liczby wątków wydajność programu zaczyna drastycznie maleć, co świadczy o dużych nakładach związanych z tworzeniem i komunikacją międzywątkową.
 
-Jak można zauważyć dzięki użyciu standardu MPI do zrównoleglenia rozmycia obrazu metodą Gaussa, udało się znacząco przyśpieszyć wykonywanie programu. Najwyższe przyśpieszenie udało się uzyskać wykorzystując pełną liczbę - 6 rdzeni procesora na którym został przetestowany program. Po przekroczeniu granicy 6 procesów przyśpieszenie przestało wzrastać a narzut tworzenia i przesyłania wiadomości między procesami wraz z wzrostem ich liczby powodował nawet powolne opóźńienie.
-Można wyciągnąc wniosek, że standard MPI dobrze nadaje się do zadań które wymagają zrównoleglenia i pozwala wykorzystać wszystkie rdzenie procesora do obliczeń. W momencie gdy liczba procesów przekraca liczbę dostępnych rdzeni przyśpieszenie przestaje wzrastać, pomimo wparcia przez procesor technologii HyperThreading.
+
 
 \end{document}
