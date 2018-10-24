@@ -109,18 +109,17 @@ int main(int argc, char** argv )
 
     if (isMainProcess(rank)){
 
-		if (numberOfProcesses < 2) {
-            printf("Incorret number of threads\n");
-			MPI_Finalize();
-            return -1;
+		if (numberOfProcesses < 1) {
+		        printf("Incorret number of threads\n");
+				MPI_Finalize();
+		        return -1;
 		}
-        
-        if ( argc != 3 )
-        {
-            printf("Pass image input, image output as args\n");
-            MPI_Finalize();
-            return -1;
-        }
+		    
+		if ( argc != 3 ) {
+			printf("Pass image input, image output as args\n");
+			MPI_Finalize();
+			return -1;
+		}
 
         srcImagePath = argv[1];
         dstImagePath = argv[2];
@@ -136,39 +135,44 @@ int main(int argc, char** argv )
 
         initMask();
 
-        imgSplitSize = inputImg.rows / (numberOfProcesses - 1);
-		int lastImgSplitSize = imgSplitSize + inputImg.rows % (numberOfProcesses - 1);
-        startTime = MPI_Wtime();
+		startTime = MPI_Wtime();
+		if (numberOfProcesses == 1) {
+			outputImg = gauss(inputImg);
+		} else {
 
-        // Split picture and send to other processes
-        for (int i = 1; i < numberOfProcesses; ++i){
-			if (i != numberOfProcesses - 1) {
-            	partOfImg = cutPicture(inputImg, 0, (i -1) * imgSplitSize, inputImg.cols, imgSplitSize);
-			} else {
-				partOfImg = cutPicture(inputImg, 0, (i -1) * imgSplitSize, inputImg.cols, lastImgSplitSize);
+		    imgSplitSize = inputImg.rows / (numberOfProcesses - 1);
+			int lastImgSplitSize = imgSplitSize + inputImg.rows % (numberOfProcesses - 1);
+
+		    // Split picture and send to other processes
+		    for (int i = 1; i < numberOfProcesses; ++i){
+				if (i != numberOfProcesses - 1) {
+		        	partOfImg = cutPicture(inputImg, 0, (i -1) * imgSplitSize, inputImg.cols, imgSplitSize);
+				} else {
+					partOfImg = cutPicture(inputImg, 0, (i -1) * imgSplitSize, inputImg.cols, lastImgSplitSize);
+				}
+				partOfImg = addBorders(partOfImg);
+		        x = partOfImg.rows;
+		        y = partOfImg.cols;
+		        
+		        send(&x, 1, MPI_INT, i, START_VALUE_TAG);
+		        send(&y, 1, MPI_INT, i, END_VALUE_TAG);
+		        send(partOfImg.data, x * y * 3, MPI_BYTE, i, DATA_TAG);
+		    }
+
+		    outputImg = Mat(0, 0, CV_8UC3);
+
+		    // Get filtered parts and merge to image
+		    for(int i = 1; i < numberOfProcesses; i++) {
+		        receive(&x, 1, MPI_INT, i, MULTIPLY_ID*i+START_VALUE_TAG);
+		        receive(&y, 1, MPI_INT, i, MULTIPLY_ID*i+END_VALUE_TAG);
+				
+		        partOfImg = Mat(x, y, CV_8UC3);
+		        receive(partOfImg.data, x*y*3, MPI_BYTE, i, MULTIPLY_ID*i+DATA_TAG);
+				partOfImg = removeBorders(partOfImg);
+
+		        outputImg.push_back(partOfImg);
 			}
-			partOfImg = addBorders(partOfImg);
-            x = partOfImg.rows;
-            y = partOfImg.cols;
-            
-            send(&x, 1, MPI_INT, i, START_VALUE_TAG);
-            send(&y, 1, MPI_INT, i, END_VALUE_TAG);
-            send(partOfImg.data, x * y * 3, MPI_BYTE, i, DATA_TAG);
-        }
-
-        outputImg = Mat(0, 0, CV_8UC3);
-
-        // Get filtered parts and merge to image
-        for(int i = 1; i < numberOfProcesses; i++) {
-            receive(&x, 1, MPI_INT, i, MULTIPLY_ID*i+START_VALUE_TAG);
-            receive(&y, 1, MPI_INT, i, MULTIPLY_ID*i+END_VALUE_TAG);
-			
-            partOfImg = Mat(x, y, CV_8UC3);
-            receive(partOfImg.data, x*y*3, MPI_BYTE, i, MULTIPLY_ID*i+DATA_TAG);
-			partOfImg = removeBorders(partOfImg);
-
-            outputImg.push_back(partOfImg);
-	    }
+		}
 
     } else {
 
