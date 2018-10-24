@@ -1,0 +1,114 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[polish]{babel}
+\usepackage{polski}
+\usepackage[utf8]{inputenc}
+\usepackage{indentfirst}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage[pdftex]{color,graphicx}
+\usepackage{subfigure}
+\usepackage{afterpage}
+\usepackage{setspace}
+\usepackage{color}
+\usepackage{wrapfig}
+\usepackage{listings}
+\usepackage{datetime}
+\usepackage[outdir=./]{epstopdf}
+
+\renewcommand{\onehalfspacing}{\setstretch{1.6}}
+
+\geometry{tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setlength{\parindent}{1cm}
+\setlength{\parskip}{0mm}
+
+\newenvironment{lista}{
+\begin{itemize}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{itemize}}
+
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+
+\definecolor{lbcolor}{rgb}{0.95,0.95,0.95}
+\lstset{
+    backgroundcolor=\color{lbcolor},
+    tabsize=4,
+  language=C++,
+  captionpos=b,
+  tabsize=3,
+  frame=lines,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=5pt,
+  breaklines=true,
+  showstringspaces=false,
+  basicstyle=\footnotesize,
+  identifierstyle=\color{magenta},
+  keywordstyle=\color[rgb]{0,0,1},
+  commentstyle=\color{Darkgreen},
+  stringstyle=\color{red}
+  }
+
+\begin{document}
+
+\noindent
+\begin{tabular}{|c|p{11cm}|c|} \hline 
+Grupa 1 & Kordian Kurdziel, Mateusz Maciejak & \ddmmyyyydate\today \tabularnewline
+\hline 
+\end{tabular}
+
+
+\section*{Zadanie 1 - Rozmycie Gaussa w OpenMP}
+
+Zadanie programu było rozmycie obrazu podanego na wejściu za pomocą algorytmu Gaussa z maską 5x5. W celu poprawy wydajności programu do zrównoleglenia jego działania należało wykorzystać OpenMP.
+
+Poniższy fragment kodu w pierwszej pętli for jest wykonywany równolegle w oddzielnych wątkach, dzięki zastosowaniu dyrektywy pragma omp parallel for. W programie użyto dyrektywę schedule z opcją static. Oznacza ona, że każdemu wątkowi zostanie przypisana taka sama ilość wykonywanych zadań. Zadania te powinny wykonywać się w tym samym czasie, więc taki przydział wydaje się tu odpowiedni - nie będzie stwarzał dodatkowych narzutów związanych z dynamicznym przydziałem zadań. Wartość każdego kanału RGB jest liczona oddzielnie w funkcji calculateNewPixelChannelValue()
+\begin{lstlisting}
+#pragma omp parallel for default(shared) private(i,j) schedule(static) num_threads(threadsNumber)
+for (i = margin; i < inputImg.rows - margin; i++) {
+	for (j = margin; j < inputImg.cols - margin; j++) {
+		rgbOutputChannels[0].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[0], i, j);
+		rgbOutputChannels[1].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[1], i, j);
+		rgbOutputChannels[2].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[2], i, j);
+	}
+}
+\end{lstlisting}
+
+Funkcja wylicza wartość dla każdego kanału na podstawie wagi poszczególnych pikseli maski oraz wartości tych pikseli
+\begin{lstlisting}
+int calculateNewPixelChannelValue(Mat channel, int row, int col) {
+    int sum = 0;
+    for (int i = 0; i < maskSize; ++i) {
+        for (int j = 0; j < maskSize; ++j) {
+            sum+= mask[i][j] * ((int) channel.at<uchar>(row + i - 2, col + j - 2));
+        }
+    }
+    return (int) (sum / maskWeight);
+}
+
+\end{lstlisting}
+
+
+Poniższe wykresy 1 i 2, przedstawiające zależność czasową oraz przyspieszenia zostały oparte na średnich wynikach programu uruchamianych lokalnie na maszynie wirtualnej. Wykorzystany został 6 rdzeniowy procesor Intel z technologią Hyperthreadingu.
+
+\begin{figure}[!ht]
+	\centering
+  \includegraphics[width=0.6\textwidth]{wykresCzas-eps-converted-to.pdf}
+  \caption{Wykres zależności czasu wykonywania obliczeń od liczby wątków}
+\end{figure}
+
+\begin{figure}[!ht]
+	\centering
+  \includegraphics[width=0.6\textwidth]{wykresPrzyspieszenie-eps-converted-to.pdf}
+  \caption{Wykres przyspieszenia działania programu w zależności od liczby wątków}
+\end{figure}
+
+
+Jak widać dzięki zastosowaniu technologii OpenMP, wykorzystując dostępne wątki, udało się znacząco przyspieszyć wykonywanie programu. Uzyskane rzeczywiste przyspieszenie jest bliskie idealnemu, co może świadczyć o tym, że powyższa klasa problemów nadaje się całkiem dobrze do wykorzystywania obliczeń wielowątkowych.
+Jak można zauważyć na wykresie przyspieszenie działania programu wzrastało wraz z liczbą wykorzystywanych wątków jedynie do 6 wątku. Potem wraz ze wzrostem liczby wątków program nie wykazywał już aż tak dużego przyspieszenia, a nawet potrafił minimalnie zwolnić. Można więc wyciągnąć wniosek, że technologia Hyperthreadingu, wykorzystywana w procesorach Intela, nie działa aż tak wydajnie przy takich obliczeniach. Do takiego zrównoleglania niewątpliwie lepszy byłby procesor z większą ilością rdzeni fizycznych.
+
+
+\end{document}
