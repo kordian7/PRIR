@@ -72,6 +72,17 @@ Mat cutPicture(Mat picture, int x, int y, int width, int height){
     return cropped;
 }
 
+Mat addBorders(Mat picture) {
+	Mat copy;
+	picture.copyTo(copy);
+	copyMakeBorder(picture, copy, margin, margin, margin, margin, BORDER_REPLICATE);
+	return copy;
+}
+
+Mat removeBorders(Mat picture) {
+	return cutPicture(picture, margin, margin, picture.cols - 2 * margin, picture.rows - 2 * margin);
+}
+
 Mat gauss(Mat img) {
     Mat output = img.clone();
     vector<Mat> rgbInput;   
@@ -139,6 +150,8 @@ int main(int argc, char** argv )
         initMask();
 
         imgSplitSize = inputImg.rows / (numberOfProcesses - 1);
+		int lastImgSplitSize = imgSplitSize + inputImg.rows % (numberOfProcesses - 1);
+cout << "split " << imgSplitSize << ", lastSplit " << lastImgSplitSize << endl;
         startTime = MPI_Wtime();
 
         cout << "BEFORE FOR LOOP MAIN PROCESS " << rank << endl;
@@ -146,9 +159,12 @@ int main(int argc, char** argv )
 
         // Split picture and send to other processes
         for (int i = 1; i < numberOfProcesses; ++i){
-
-            partOfImg = cutPicture(inputImg, 0, (i -1) * imgSplitSize, inputImg.cols, imgSplitSize);
-
+			if (i != numberOfProcesses - 1) {
+            	partOfImg = cutPicture(inputImg, 0, (i -1) * imgSplitSize, inputImg.cols, imgSplitSize);
+			} else {
+				partOfImg = cutPicture(inputImg, 0, (i -1) * imgSplitSize, inputImg.cols, lastImgSplitSize);
+			}
+			partOfImg = addBorders(partOfImg);
             x = partOfImg.rows;
             y = partOfImg.cols;
 
@@ -165,11 +181,15 @@ int main(int argc, char** argv )
 
         // Get filtered parts and merge to image
         for(int i = 1; i < numberOfProcesses; i++) {
-            //receive(&x, 1, MPI_INT, i, MULTIPLY_ID*i+START_VALUE_TAG);
-            //receive(&y, 1, MPI_INT, i, MULTIPLY_ID*i+END_VALUE_TAG);
+            receive(&x, 1, MPI_INT, i, MULTIPLY_ID*i+START_VALUE_TAG);
+            receive(&y, 1, MPI_INT, i, MULTIPLY_ID*i+END_VALUE_TAG);
+			
             partOfImg = Mat(x, y, CV_8UC3);
-
             receive(partOfImg.data, x*y*3, MPI_BYTE, i, MULTIPLY_ID*i+DATA_TAG);
+			partOfImg = removeBorders(partOfImg);
+
+        cout << "new IMAGE ROWS: " << partOfImg.rows << endl;
+        cout << "new IMAGE COLS: " << partOfImg.cols << endl;
             outputImg.push_back(partOfImg);
 	    }
 
