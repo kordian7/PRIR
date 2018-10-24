@@ -61,36 +61,67 @@ Grupa 1 & Kordian Kurdziel, Mateusz Maciejak & \ddmmyyyydate\today \tabularnewli
 \end{tabular}
 
 
-\section*{Zadanie 1 - Rozmycie Gaussa w OpenMP}
+\section*{Zadanie 2 - Rozmycie Gaussa w MPI}
 
-Zadanie programu było rozmycie obrazu podanego na wejściu za pomocą algorytmu Gaussa z maską 5x5. W celu poprawy wydajności programu do zrównoleglenia jego działania należało wykorzystać OpenMP.
+Zadaniem programu było rozmycie obrazu podanego na wejściu za pomocą algorytmu Gaussa z maską 5x5. W celu poprawy wydajności programu do zrównoleglenia jego działania należało wykorzystać standard MPI.
+Program przyjmuje dwa argumenty, obraz wejściowy oraz obraz wyjściowy. Liczbę procesów na jakich mają zostać wykoanane obliczenia należy podać po komendzie mpirun używając flagi -n.
 
-Poniższy fragment kodu w pierwszej pętli for jest wykonywany równolegle w oddzielnych wątkach, dzięki zastosowaniu dyrektywy pragma omp parallel for. W programie użyto dyrektywę schedule z opcją static. Oznacza ona, że każdemu wątkowi zostanie przypisana taka sama ilość wykonywanych zadań. Zadania te powinny wykonywać się w tym samym czasie, więc taki przydział wydaje się tu odpowiedni - nie będzie stwarzał dodatkowych narzutów związanych z dynamicznym przydziałem zadań. Wartość każdego kanału RGB jest liczona oddzielnie w funkcji calculateNewPixelChannelValue()
+Do obsługi operacji na zdjęciu została wykorzystana biblioteka OpenCV. Poniższy fragment kodu prezentuje inicjalizację programu opartego o MPI oraz pobranie identyfikatora aktualnego procesu oraz liczby procesów z jaką został uruchomiony program. Jest to potrzebne do zrównloleglenia obliczeń w dalszej części programu.
+
 \begin{lstlisting}
-#pragma omp parallel for default(shared) private(i,j) schedule(static) num_threads(threadsNumber)
-for (i = margin; i < inputImg.rows - margin; i++) {
-	for (j = margin; j < inputImg.cols - margin; j++) {
-		rgbOutputChannels[0].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[0], i, j);
-		rgbOutputChannels[1].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[1], i, j);
-		rgbOutputChannels[2].at<uchar>(i,j) = calculateNewPixelChannelValue(rgbInputChannels[2], i, j);
-	}
-}
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank (commmunicate, &rank);
+    MPI_Comm_size(commmunicate, &numberOfProcesses);
 \end{lstlisting}
 
-Funkcja wylicza wartość dla każdego kanału na podstawie wagi poszczególnych pikseli maski oraz wartości tych pikseli
+Funkcja MPI\_Init inicjuje mechanizm MPI. Następnie funkcja MPI\_Comm\_rank inicjuje do zmiennej rank aktualnie używany id procesu. Funkcja MPI\_Comm\_size ustawia w zmiennej numberOfProcesses ilość procesów.
+Obrazek jest dzielony na równe części i rozdzielany przez proces główny na do oddzielnych procesów, które w separacji rozmywają kolejne partie obrazu. Do pocięcia obrazka wykorzystywana jest funkcja biblioteki OpenCv Rect.
+
 \begin{lstlisting}
-int calculateNewPixelChannelValue(Mat channel, int row, int col) {
-    int sum = 0;
-    for (int i = 0; i < maskSize; ++i) {
-        for (int j = 0; j < maskSize; ++j) {
-            sum+= mask[i][j] * ((int) channel.at<uchar>(row + i - 2, col + j - 2));
+  cv::Rect myROI(x, y, width, height);
+	cv::Mat croppedRef(picture, myROI);
+	cv::Mat cropped;
+\end{lstlisting}
+
+Do komunikacji między procesami wykorzystane zostały funkcje standardu MPI - MPI\_Send i MPI\_Recv. Na poniższym listingu można zobaczyć ich sygnaturę.
+
+\begin{lstlisting}
+  MPI_Send(
+      void* data,
+      int count,
+      MPI_Datatype datatype,
+      int destination,
+      int tag,
+      MPI_Comm communicator)
+  MPI_Recv(
+      void* data,
+      int count,
+      MPI_Datatype datatype,
+      int source,
+      int tag,
+      MPI_Comm communicator,
+      MPI_Status* status)
+\end{lstlisting}
+
+W programie główny proces służy do odczytu obrazka, podzieleniu go na równe partie, wysłaniu do procesów podrzędnych i po przetworzeniu złączenie z powrotem do spójnej całości.
+Główny jak i pozostałe procesy mogą być rozpoznane dzięki identyfikatorowi zwracanemu przez funckję MPI\_Com\_rank na początku programu. Poniższy fragment kodu przedstawia podzielenie obrazka na częśi i przesłanie ich do podrzędnych procesów.
+
+\begin{lstlisting}
+        // Split picture and send to other processes
+        for (int i = 1; i < numberOfProcesses; ++i){
+
+            partOfImg = cutPicture(inputImg, 0, (i -1) * imgSplitSize, inputImg.cols, imgSplitSize);
+
+            x = partOfImg.rows;
+            y = partOfImg.cols;
+            
+            send(&x, 1, MPI_INT, i, START_VALUE_TAG);
+            send(&y, 1, MPI_INT, i, END_VALUE_TAG);
+            send(partOfImg.data, x * y * 3, MPI_BYTE, i, DATA_TAG);
         }
-    }
-    return (int) (sum / maskWeight);
-}
-
 \end{lstlisting}
 
+Samo rozmycie obrazu jest analogiczne jak w zadaniu numer 1.
 
 Poniższe wykresy 1 i 2, przedstawiające zależność czasową oraz przyspieszenia zostały oparte na średnich wynikach programu uruchamianych lokalnie na maszynie wirtualnej. Wykorzystany został 6 rdzeniowy procesor Intel z technologią Hyperthreadingu.
 
@@ -106,9 +137,7 @@ Poniższe wykresy 1 i 2, przedstawiające zależność czasową oraz przyspiesze
   \caption{Wykres przyspieszenia działania programu w zależności od liczby wątków}
 \end{figure}
 
-
-Jak widać dzięki zastosowaniu technologii OpenMP, wykorzystując dostępne wątki, udało się znacząco przyspieszyć wykonywanie programu. Uzyskane rzeczywiste przyspieszenie jest bliskie idealnemu, co może świadczyć o tym, że powyższa klasa problemów nadaje się całkiem dobrze do wykorzystywania obliczeń wielowątkowych.
-Jak można zauważyć na wykresie przyspieszenie działania programu wzrastało wraz z liczbą wykorzystywanych wątków jedynie do 6 wątku. Potem wraz ze wzrostem liczby wątków program nie wykazywał już aż tak dużego przyspieszenia, a nawet potrafił minimalnie zwolnić. Można więc wyciągnąć wniosek, że technologia Hyperthreadingu, wykorzystywana w procesorach Intela, nie działa aż tak wydajnie przy takich obliczeniach. Do takiego zrównoleglania niewątpliwie lepszy byłby procesor z większą ilością rdzeni fizycznych.
-
+Jak można zauważyć dzięki użyciu standardu MPI do zrównoleglenia rozmycia obrazu metodą Gaussa, udało się znacząco przyśpieszyć wykonywanie programu. Najwyższe przyśpieszenie udało się uzyskać wykorzystując pełną liczbę - 6 rdzeni procesora na którym został przetestowany program. Po przekroczeniu granicy 6 procesów przyśpieszenie przestało wzrastać a narzut tworzenia i przesyłania wiadomości między procesami wraz z wzrostem ich liczby powodował nawet powolne opóźńienie.
+Można wyciągnąc wniosek, że standard MPI dobrze nadaje się do zadań które wymagają zrównoleglenia i pozwala wykorzystać wszystkie rdzenie procesora do obliczeń. W momencie gdy liczba procesów przekraca liczbę dostępnych rdzeni przyśpieszenie przestaje wzrastać, pomimo wparcia przez procesor technologii HyperThreading.
 
 \end{document}
