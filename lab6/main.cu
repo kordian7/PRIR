@@ -15,7 +15,6 @@ const int GRID_SIZE = 1;
 // Use naive method
 __device__ bool isPrime(ll n)
 {
-    printf("IS PRIME FUNCTION %lld \n", n);
     if(n<2)
         return false;
         
@@ -23,7 +22,6 @@ __device__ bool isPrime(ll n)
         if(n%i==0)
             return false; 
 
-    printf("%lld IS PRIME \n", n);
     return true;
 }
 
@@ -43,11 +41,6 @@ std::vector<ll> reaadFile(char* arg){
 __global__ void calculate(ll *Arr, bool *results, int sizeOfArray){
 
     int x = (blockIdx.x * blockDim.x) + threadIdx.x;
-
-    printf("X: %d \n", x);
-    printf("BLOCK_ID: %d\n", blockIdx.x);
-    printf("BLOCK_DIM: %d \n", blockDim.x);
-    printf("ThreaD_ID: %d\n", threadIdx.x);
 
 	if (x < sizeOfArray) 
 	{
@@ -87,24 +80,16 @@ int main(int argc, char** argv )
     ll numbersFromFileArr[sizeOfArray];
     std::copy(numbersFromFile.begin(), numbersFromFile.end(), numbersFromFileArr);
 
-    cout << "BEFORE ALLOCATE RESULTS" << endl;
-
     unsigned int i;
     bool* results = (bool *) malloc (sizeToAllocateBool);
 
     ll* c_arr;
     bool* c_results;
 
-    cout << "CUDA MALLOC" << endl;
-
     cudaMalloc((void**) &c_arr, sizeToAllocateLongLong);
     cudaMalloc((void**) &c_results, sizeToAllocateBool);
 
-    cout << "CUDA MEMCPY" << endl;
-
     cudaMemcpy((void *)c_arr, (void *)numbersFromFileArr, sizeToAllocateLongLong, cudaMemcpyHostToDevice);
-
-    cout << "BEFORE DIM3" << endl;
 
     dim3 blocks(BLOCK_SIZE, BLOCK_SIZE);
     dim3 grids(GRID_SIZE, GRID_SIZE);
@@ -115,8 +100,7 @@ int main(int argc, char** argv )
 	cudaEventCreate(&stop);
 	cudaEventRecord(start, 0);
 
-    cout << "BEFORE CALL KERNEL: " << endl;
-    calculate<<<sizeOfArray, GRID_SIZE>>>(c_arr, c_results, sizeOfArray);
+    calculate<<<sizeOfArray * BLOCK_SIZE, GRID_SIZE>>>(c_arr, c_results, sizeOfArray);
 
     //End timer and put result into time variable
     cudaDeviceSynchronize();			 
@@ -137,14 +121,18 @@ int main(int argc, char** argv )
 
     for (int i = 0; i < sizeOfArray; i++){
         if (results[i]){
-            cout << numbersFromFileArr[i] << " prime";
+            cout << numbersFromFileArr[i] << " prime" << endl;
         } else {
-            cout << numbersFromFileArr[i] << " composite";
+            cout << numbersFromFileArr[i] << " composite" << endl;
         }
 
         if (isPrimeMain(numbersFromFileArr[i]) == results[i])
-            cout << " - GOOD" << endl;
+            cout << "GOOD" << endl;
+        else
+            cout << "####################################################################################################" << endl;
     }
+
+     printf("Czas: %.4fms\n", time);
 
     free(results);
     return 0;
