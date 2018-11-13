@@ -125,14 +125,7 @@ int main(int argc, char** argv )
         } else {
             cout << numbersFromFileArr[i] << " composite" << endl;
         }
-
-        if (isPrimeMain(numbersFromFileArr[i]) == results[i])
-            cout << "GOOD" << endl;
-        else
-            cout << "####################################################################################################" << endl;
     }
-
-     printf("Czas: %.4fms\n", time);
 
     free(results);
     return 0;
