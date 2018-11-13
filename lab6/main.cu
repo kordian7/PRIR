@@ -10,11 +10,12 @@ using namespace std;
 #define ll long long
 
 const int BLOCK_SIZE = 2;
-const int GRID_SIZE = 32;
+const int GRID_SIZE = 1;
 
 // Use naive method
 __device__ bool isPrime(ll n)
 {
+    printf("IS PRIME FUNCTION %lld \n", n);
     if(n<2)
         return false;
         
@@ -22,6 +23,7 @@ __device__ bool isPrime(ll n)
         if(n%i==0)
             return false; 
 
+    printf("%lld IS PRIME \n", n);
     return true;
 }
 
@@ -40,16 +42,29 @@ std::vector<ll> reaadFile(char* arg){
 
 __global__ void calculate(ll *Arr, bool *results, int sizeOfArray){
 
-    long x = blockIdx.x * blockDim.x + threadIdx.x;
-	long y = blockIdx.y * blockDim.y + threadIdx.y;
+    int x = (blockIdx.x * blockDim.x) + threadIdx.x;
 
-	if (x < sizeOfArray && y < sizeOfArray) 
+    printf("X: %d \n", x);
+    printf("BLOCK_ID: %d\n", blockIdx.x);
+    printf("BLOCK_DIM: %d \n", blockDim.x);
+    printf("ThreaD_ID: %d\n", threadIdx.x);
+
+	if (x < sizeOfArray) 
 	{
-		for (long k = 0; k < sizeOfArray; k++) {
-			results[x + sizeOfArray * y] += isPrime(Arr[x + sizeOfArray * y]);
-		}
+        results[x] += isPrime(Arr[x]);
 	}
 
+}
+
+bool isPrimeMain(ll n){
+    if(n<2)
+        return false;
+        
+    for(ll i=2;i*i<=n;i++)
+        if(n%i==0)
+            return false; 
+
+    return true;
 }
     
 int main(int argc, char** argv )
@@ -65,18 +80,31 @@ int main(int argc, char** argv )
     vector<ll> numbersFromFile = reaadFile(argv[1]);
 
     int sizeOfArray = numbersFromFile.size();
+    int sizeToAllocateLongLong = sizeOfArray * sizeof(ll);
+    int sizeToAllocateBool = sizeOfArray * sizeof(bool);
+
 	
     ll numbersFromFileArr[sizeOfArray];
     std::copy(numbersFromFile.begin(), numbersFromFile.end(), numbersFromFileArr);
 
+    cout << "BEFORE ALLOCATE RESULTS" << endl;
+
     unsigned int i;
-    bool results[sizeOfArray];
+    bool* results = (bool *) malloc (sizeToAllocateBool);
 
     ll* c_arr;
     bool* c_results;
 
-    cudaMemcpy(c_arr, numbersFromFileArr, sizeOfArray, cudaMemcpyHostToDevice);
-    cudaMalloc((void**) &c_results, sizeOfArray);
+    cout << "CUDA MALLOC" << endl;
+
+    cudaMalloc((void**) &c_arr, sizeToAllocateLongLong);
+    cudaMalloc((void**) &c_results, sizeToAllocateBool);
+
+    cout << "CUDA MEMCPY" << endl;
+
+    cudaMemcpy((void *)c_arr, (void *)numbersFromFileArr, sizeToAllocateLongLong, cudaMemcpyHostToDevice);
+
+    cout << "BEFORE DIM3" << endl;
 
     dim3 blocks(BLOCK_SIZE, BLOCK_SIZE);
     dim3 grids(GRID_SIZE, GRID_SIZE);
@@ -87,10 +115,8 @@ int main(int argc, char** argv )
 	cudaEventCreate(&stop);
 	cudaEventRecord(start, 0);
 
-    //results and numberFromFileArr to send into kernel
-
-
-    calculate<<<blocks, grids>>>(c_arr, c_results, sizeOfArray);
+    cout << "BEFORE CALL KERNEL: " << endl;
+    calculate<<<sizeOfArray, GRID_SIZE>>>(c_arr, c_results, sizeOfArray);
 
     //End timer and put result into time variable
     cudaDeviceSynchronize();			 
@@ -98,23 +124,28 @@ int main(int argc, char** argv )
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&time, start, stop);
 
-    
     printf("Czas: %.4fms\n", time);
 
-    if (cudaMemcpy(results, c_results , sizeOfArray, cudaMemcpyDeviceToHost) != cudaSuccess) {
+    if (cudaMemcpy((void *)results, (void *)c_results , sizeToAllocateBool, cudaMemcpyDeviceToHost) != cudaSuccess) {
 		cout<<"GPU to CPU copy error\n";
 	}
 
     cudaFree(c_arr);
     cudaFree(c_results);
 
+
+
     for (int i = 0; i < sizeOfArray; i++){
         if (results[i]){
-            cout << numbersFromFileArr[i] << " prime" << endl;
+            cout << numbersFromFileArr[i] << " prime";
         } else {
-            cout << numbersFromFileArr[i] << " composite" << endl;
+            cout << numbersFromFileArr[i] << " composite";
         }
+
+        if (isPrimeMain(numbersFromFileArr[i]) == results[i])
+            cout << " - GOOD" << endl;
     }
 
+    free(results);
     return 0;
 }
