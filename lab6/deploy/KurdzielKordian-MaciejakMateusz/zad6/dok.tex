@@ -61,27 +61,47 @@ Grupa 1 & Kordian Kurdziel, Mateusz Maciejak & \ddmmyyyydate\today \tabularnewli
 \end{tabular}
 
 
-\section*{Zadanie 4 - Liczby pierwsze - OpenMP}
+\section*{Zadanie 6 - Liczby pierwsze - CUDA}
 
-Celem programu był test czy liczby podane w pliku są liczbami pierwszymi. W celu poprawy wydajności obliczeń program należało zrównoleglić z użyciem standardu OpenMP.
+Celem zadania było przetestowanie czy liczby podane w pliku są liczbami pierwszymi. W celu poprawy wydajności obliczeń program należało zrównoleglić z użyciem technologii CUDA.
 
-Program przyjmuje na wejściu dwa argumenty: liczbę wątków oraz ścieżkę do pliku w którym znajdują się liczby do przetestowania. Pierwszą rzeczą jaką wykonuje program jest sprawdzenie czy została podana odpowiednia ilość argumentów. Następnie zostaje wczytany plik a wpisane liczby umieszczone są w tablicy.
+Program przyjmuje na wejściu jeden argument: ścieżkę do pliku w którym znajduje się lista liczb do przetestowania. Pierwszą rzeczą jaką wykonuje program jest sprawdzenie czy została podana odpowiednia ilość argumentów. Następnie zostaje wczytany plik a wpisane liczby umieszczone są w tablicy.
 \begin{lstlisting}
-    #pragma omp parallel for default(none) shared(results, numbersFromFileArr) private(i) schedule(dynamic) num_threads(numberOfThreads)
-    for (i = 0 ; i < sizeof(numbersFromFileArr)/sizeof(*numbersFromFileArr) ; i++) {
-        if (isPrime(numbersFromFileArr[i])){
-            results[i] = true;
-        } else {
-            results[i] = false;
+__global__ void calculate(ll *Arr, bool *results, int sizeOfArray, int amountOfBlocks){
+
+    int x = (blockIdx.x * blockDim.x) + threadIdx.x;
+
+    if (amountOfBlocks >= sizeOfArray){
+        results[x] += isPrime(Arr[x]);
+    } else{
+        int sizeOfPart = sizeOfArray / amountOfBlocks;
+        int restOfDivide = sizeOfArray%amountOfBlocks;
+
+        int startPart = sizeOfPart * x;
+        int endPart = sizeOfPart * (x + 1);
+
+        if (endPart <= sizeOfArray) 
+        {
+            int restStart = sizeOfPart * amountOfBlocks;
+
+            for (int i = startPart; i < endPart; i++){
+                results[i] += isPrime(Arr[i]);
+            }
+
+            if (x < restOfDivide){
+                results[restStart + x] += isPrime(Arr[restStart + x]);
+            }
+
+            
         }
     }
+}
 \end{lstlisting}
 
-Powyższy fragment kodu zrównolegla działania wykonywane w pętli. Dyrektywa zrównoleglania została ustawiona na wartość default. W klauzuli shared została umieszczona tablica przechowująca wynik oszacowania czy liczba jest pierwsza oraz tablica zawierająca liczby z plików. 
-Jako zmienna prywatna została ustalona wartość licznika pętli. Klauzula schedule została ustalona na wartość dynamic, gdyż w takiej konfiguracji udało się pozyskać najbardziej optymalne wyniki.
+Powyższy funkcja jest wywoływana z hosta i odpowiada za odpowiedni podział przesłanej tablicy z liczbami do sprawdzenia. Dzięki zmiennym dostępnych w architekturze CUDA blockIdx.x, blockDim.x oraz threadIdx.x obliczany jest unikalny indeks bloku. Następnie jeżeli liczba bloków jest większa lub równa ilości liczb w tablicy w każdym bloku jest obliczana pojednyńcza liczba. W przeciwnym wypadku tablica jest rozdzielana na równe części między bloki i poszczególne oszacowanie jest przeprowadzane na tych partiach tablicy liczb. 
 
 \begin{lstlisting}
-bool isPrime(ll n)
+__device__ bool isPrime(ll n)
 {
     if(n<2)
         return false;
@@ -92,28 +112,19 @@ bool isPrime(ll n)
 
     return true;
 }
-
 \end{lstlisting}
 
-Powyższy listing przedstawia algorytm wyznaczania liczby pierwszej. Został wybrany algorytm naiwny, ponieważ gwarantował poprawność wyników, a ilość i długość testowanych liczb nie była na tyle długa by powodowało to znaczące obniżenie wydajności obliczeń. 
-W poszczególnych wątkach sprawdzane jest czy dana liczba jest liczbą pierwszą. Dane zostają podzielone na części i obliczane równolegle, używając wewnętrznych kopii danych w wątku.
+Powyższy listing przedstawia algorytm wyznaczania liczby pierwszej. Funkcja zostaje uruchomiona na urządzeniu z funkcji już działającej również na urządzeniu, dlatego przed zwracanym typem pojawiło się słowo kluczowe \textunderscore \textunderscore device\textunderscore \textunderscore. Został wybrany algorytm naiwny, ponieważ gwarantował poprawność wyników, a ilość i długość testowanych liczb nie była na tyle długa by powodowało to znaczące obniżenie wydajności obliczeń. Powyższy kod zostaje wywołany dla oszacowania każdej liczby znajdującej się w tablicy.
 
-Poniższe wykresy przedstawiają wyniki uzyskane na serwerze CUDA. Pierwszy wykres przedstawia zależność czasu obliczeń od liczby wątków. Drugi wykres przedstawia wartość przyspieszenia obliczeń względem programu uruchamianego synchronicznie w zależnośći od liczby wątków.
-
-\begin{figure}[!ht]
-	\centering
-  \includegraphics[width=0.9\textwidth]{wykresCzas.png}
-  \caption{Wykres zależności czasu wykonywania obliczeń od liczby wątków}
-\end{figure}
+Poniższy wykres przedstawia wyniki uzyskane na serwerze CUDA. Czas obliczeń dla każdej ilości bloków przedstawionej na wykresie został przetestowany 5 razy a z wyników wyciągnięto średnią arytmetyczną.
 
 \begin{figure}[!ht]
 	\centering
-  \includegraphics[width=0.9\textwidth]{wykresPrzyspieszenie.png}
-  \caption{Wykres przyspieszenia działania programu w zależności od liczby wątków}
+  \includegraphics[width=0.9\textwidth]{WykresCzas.png}
+  \caption{Wykres zależności czasu wykonywania obliczeń od liczby bloków}
 \end{figure}
 
 
-Jak można zauważyć, program przyśpiesza aż do osiągnięcia granicy 4 wątków. Dzieje się tak, gdyż procesor na którym program został uruchomiony posiada 4 rdzenie oraz korzysta z technologii \quotedblbase Hyper-Threading\textquotedblright.
-Dzięki wykorzystaniu technologii OpenMP udało się uzyskać przyśpieszenie bliskie idealnemu, co świadczy o tym że przedstawione obliczenia dobrze nadają się do zrównoleglenia.
+Jak można zauważyć, czas obliczeń znacząco się zmniejsza wraz z rozpoczęciem zwiększania liczby bloków. Wraz z wzrostem liczby bloków różnice pomiędzy sąsiednimi czasami stają się coraz mniejsze. Siatka została ustawiona na wartość 1 gdyż taka konfiguracja dawała najlepsze rezultaty. Liczba bloków na jakich program uzyskuje najlepsze rezultaty zależy od ilości liczb do przetestowania. W naszym przypadku dla zbioru testowego składającego się z 500 liczb, liczba bloków powyżej tej wartości nie dawała przyśpieszenia, gdyż każda liczba zostawała przypisana do jednego bloku. Dlatego też końcowy ilość bloków jest ustalana na podstawie ilości liczb zawartych w testowym pliku i jest ustalana podczas uruchomienia programu. Jest to rozwiązanie optymalne dla naszego algorytmu. W kernelu odbywa się podział liczb między bloki oraz wyznaczanie czy przesłana liczba jest liczbą pierwszą.
 
 \end{document}
