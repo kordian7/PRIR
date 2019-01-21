@@ -66,7 +66,6 @@ int main(int argc, char** argv) {
 
    myin->ignore(INT_MAX,'\n');
    myin->getline(inmsg, MAX_STR_LEN);
-   std:: cout << inmsg << std::endl;
    len = strlen(inmsg);
 
    
