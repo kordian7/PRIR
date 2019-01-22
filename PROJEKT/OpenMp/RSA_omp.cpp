@@ -33,22 +33,24 @@ int main(int argc, char** argv) {
 
    numberOfThreads = strtol(argv[1], NULL, 10);
 
-   std::cin >> p;
-   if (prime(p)) 
-   {
-      std::cerr << p << " is not prime." << std::endl;
-      return 1;
-   }
+//    std::cin >> p;
+//    if (prime(p)) 
+//    {
+//       std::cerr << p << " is not prime." << std::endl;
+//       return 1;
+//    }
 
-   std::cin >> q;
-   if (prime(q)) 
-   {
-      std::cerr << q << " is not prime." << std::endl;
-      return 1;
-   }
-
-   std::cin.ignore(INT_MAX,'\n');
-   std::cin.getline(inmsg, MAX_STR_LEN);
+//    std::cin >> q;
+//    if (prime(q)) 
+//    {
+//       std::cerr << q << " is not prime." << std::endl;
+//       return 1;
+//    }
+    p = 80051;
+    q = 3659;
+    strcpy(inmsg, "OpenMP (ang. Open Multi-Processing) – wieloplatformowy interfejs programowania aplikacji (API) umożliwiający tworzenie programów komputerowych dla systemów wieloprocesorowych z pamięcią dzieloną. Może być wykorzystywany w językach programowania C, C++ i Fortran na wielu architekturach, m.in. Unix i Microsoft Windows. Składa się ze zbioru dyrektyw kompilatora, bibliotek oraz zmiennych środowiskowych mających wpływ na sposób wykonywania się programu.Dzięki temu, że standard OpenMP został uzgodniony przez głównych producentów sprzętu i oprogramowania komputerowego, charakteryzuje się on przenośnością, skalowalnością, elastycznością i prostotą użycia. Dlatego może być stosowany do tworzenia aplikacji równoległych dla różnych platform, od komputerów klasy PC po superkomputery.OpenMP można stosować do tworzenia aplikacji równoległych działających na wieloprocesorowych węzłach klastrów komputerowych. W tym przypadku stosuje się rozwiązanie hybrydowe, w którym programy są uruchamiane na klastrach komputerowych pod kontrolą alternatywnego interfejsu MPI, natomiast do zrównoleglenia pracy węzłów klastrów wykorzystuje się OpenMP. Alternatywny sposób polegał na zastosowaniu specjalnych rozszerzeń OpenMP dla systemów pozbawionych pamięci współdzielonej (np. Cluster OpenMP[1] Intela).Celem OpenMP jest implementacja wielowątkowości, czyli metody zrównoleglania programów komputerowych, w której główny „wątek programu” (czyli ciąg następujących po sobie instrukcji) „rozgałęzia” się na kilka „wątków potomnych”, które wspólnie wykonują określone zadanie. Wątki pracują współbieżnie i mogą zostać przydzielone przez środowisko uruchomieniowe różnym procesorom. Fragment kodu, który ma być wykonywany równolegle, jest w kodzie źródłowym oznaczany odpowiednią dyrektywą preprocesora. Tuż przed wykonaniem tak zaznaczonego kodu główny wątek rozgałęzia się na określoną liczbę nowych wątków. Każdy wątek posiada unikatowy identyfikator (ID), którego wartość można odczytać funkcją omp_get_thread_num() (w C/C++) lub OMP_GET_THREAD_NUM() (w Fortranie). Identyfikator wątku jest liczbą całkowitą, przy czym identyfikator wątku głównego równy jest 0. Po zakończeniu przetwarzania zrównoleglonego kodu wątki „włączają się” z powrotem do wątku głównego, który samotnie kontynuuje działanie programu i w innym miejscu może ponownie rozdzielić się na nowe wątki.");
+//    std::cin.ignore(INT_MAX,'\n');
+//    std::cin.getline(inmsg, MAX_STR_LEN);
    len = strlen(inmsg);
 
    //Generate public and private keys from p and q

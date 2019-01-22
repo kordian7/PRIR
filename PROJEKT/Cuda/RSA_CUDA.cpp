@@ -8,6 +8,8 @@
 
 #define MAX_STR_LEN 10000
 #define BLOCKWID 128
+// #define BLOCK_SIZE 16
+#define GRID_SIZE 8
 
 long int prime(long int);
 long int gcd(long int p, long int q);
@@ -19,7 +21,7 @@ int char2long(char* in, long int* out, bool random_salt=false);
 int long2char(long int* in, char* out, bool subtract_pairs=false);
 
 long int fastexp(long int base, long int exp, long int mod);
-
+int BLOCK_SIZE = 16;
 
 int main(int argc, char** argv) {
 
@@ -34,12 +36,13 @@ int main(int argc, char** argv) {
    size_t len;
 
    clock_t encrypt_time;
+    BLOCK_SIZE = strtol(argv[1], NULL, 10);
 
    //myin will take input from a file if specified on the command line and 
    //  from keyboard input (or piped input) if no file is specified
-   std::istream* myin;
-   if (0==argc) myin = &std::cin;
-   else myin = new std::ifstream(argv[1]);
+//    std::istream* myin;
+//    if (0==argc) myin = &std::cin;
+//    else myin = new std::ifstream(argv[1]);
  
    #ifdef __CUDA
    //Wake up the GPU
@@ -51,24 +54,26 @@ int main(int argc, char** argv) {
    //Get inputs
    // - two prime numbers
    // - a message to be encrypted
-   *myin >> p;
-   if (prime(p)) 
-   {
-      std::cerr << p << " is not prime." << std::endl;
-      return 1;
-   }
-   *myin >> q;
-   if (prime(q)) 
-   {
-      std::cerr << q << " is not prime." << std::endl;
-      return 1;
-   }
+//    *myin >> p;
+//    if (prime(p)) 
+//    {
+//       std::cerr << p << " is not prime." << std::endl;
+//       return 1;
+//    }
+//    *myin >> q;
+//    if (prime(q)) 
+//    {
+//       std::cerr << q << " is not prime." << std::endl;
+//       return 1;
+//    }
+    p = 80051;
+    q = 3659;
+    strcpy(inmsg, "OpenMP (ang. Open Multi-Processing) – wieloplatformowy interfejs programowania aplikacji (API) umożliwiający tworzenie programów komputerowych dla systemów wieloprocesorowych z pamięcią dzieloną. Może być wykorzystywany w językach programowania C, C++ i Fortran na wielu architekturach, m.in. Unix i Microsoft Windows. Składa się ze zbioru dyrektyw kompilatora, bibliotek oraz zmiennych środowiskowych mających wpływ na sposób wykonywania się programu.Dzięki temu, że standard OpenMP został uzgodniony przez głównych producentów sprzętu i oprogramowania komputerowego, charakteryzuje się on przenośnością, skalowalnością, elastycznością i prostotą użycia. Dlatego może być stosowany do tworzenia aplikacji równoległych dla różnych platform, od komputerów klasy PC po superkomputery.OpenMP można stosować do tworzenia aplikacji równoległych działających na wieloprocesorowych węzłach klastrów komputerowych. W tym przypadku stosuje się rozwiązanie hybrydowe, w którym programy są uruchamiane na klastrach komputerowych pod kontrolą alternatywnego interfejsu MPI, natomiast do zrównoleglenia pracy węzłów klastrów wykorzystuje się OpenMP. Alternatywny sposób polegał na zastosowaniu specjalnych rozszerzeń OpenMP dla systemów pozbawionych pamięci współdzielonej (np. Cluster OpenMP[1] Intela).Celem OpenMP jest implementacja wielowątkowości, czyli metody zrównoleglania programów komputerowych, w której główny „wątek programu” (czyli ciąg następujących po sobie instrukcji) „rozgałęzia” się na kilka „wątków potomnych”, które wspólnie wykonują określone zadanie. Wątki pracują współbieżnie i mogą zostać przydzielone przez środowisko uruchomieniowe różnym procesorom. Fragment kodu, który ma być wykonywany równolegle, jest w kodzie źródłowym oznaczany odpowiednią dyrektywą preprocesora. Tuż przed wykonaniem tak zaznaczonego kodu główny wątek rozgałęzia się na określoną liczbę nowych wątków. Każdy wątek posiada unikatowy identyfikator (ID), którego wartość można odczytać funkcją omp_get_thread_num() (w C/C++) lub OMP_GET_THREAD_NUM() (w Fortranie). Identyfikator wątku jest liczbą całkowitą, przy czym identyfikator wątku głównego równy jest 0. Po zakończeniu przetwarzania zrównoleglonego kodu wątki „włączają się” z powrotem do wątku głównego, który samotnie kontynuuje działanie programu i w innym miejscu może ponownie rozdzielić się na nowe wątki.");
 
-   myin->ignore(INT_MAX,'\n');
-   myin->getline(inmsg, MAX_STR_LEN);
+//    myin->ignore(INT_MAX,'\n');
+//    myin->getline(inmsg, MAX_STR_LEN);
    len = strlen(inmsg);
 
-   
    //Generate public and private keys from p and q
    publickey(p,q,&pube,&pubmod);
    privatekey(p,q,pube,&prive,&privmod);
@@ -141,7 +146,7 @@ int encrypt(long int* in, long int exp, long int mod, long int* out, size_t len)
    for (int i=0; i < len; i++)
    {
       long int c = in[i];
-      #if 1
+      #if 0
       out[i] = fastexp(c, exp, mod);
       #else
       //This is the slow way to do exponentiation
@@ -224,7 +229,7 @@ int encrypt(long int* in, long int exp, long int mod, long int* out, size_t len)
 	cudaEventRecord(start, 0);
 
    //Launch the kernel on the GPU with 1024 threads arranged in blocks of size BLOCKWID
-   decrypt_kernel<<<(1024*128+BLOCKWID-1)/BLOCKWID, BLOCKWID>>> (d_inout, exp, mod, len);
+   decrypt_kernel<<<BLOCK_SIZE, GRID_SIZE>>> (d_inout, exp, mod, len);
 
     //End timer and put result into time variable
     cudaDeviceSynchronize();			 
