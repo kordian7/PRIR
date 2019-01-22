@@ -197,6 +197,7 @@ int encrypt(long int* in, long int exp, long int mod, long int* out, size_t len)
 
 \end{lstlisting}
 
+Klauzula \textbf{pragma omp parallel for schedule ( dynamic ) num threads ( numberOfThreads )} jest specjalnym wyrażeniem OpenMp. Kompilator w trakcie kompilacji przekształca pętlę znajdującą się pod powyższymi słowami kluczowymi na kod dostosowany do działania na wątkach. Odciąża to programistę od odpowiedzialności i zajmowania się trudnym kodem wielowątkowym. Zmienna \textbf{numberOfThreads} pozwala na ręczne ustawienie liczby wątków na jakie mają zostać rozbite obliczenia. 
 
 \subsubsection*{4.2 Cuda}
 
