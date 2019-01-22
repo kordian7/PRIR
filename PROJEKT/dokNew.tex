@@ -95,7 +95,7 @@ Szyfrowanie może zostać przeprowadzone również przy użyciu klucza prywatneg
 \newpage
 \section*{3 Metody zrównoleglenia algorytmu}
 
-\subsection*{3.1 MPI - OpenMP - Open Multi-Processing}
+\subsection*{3.1 OpenMP - Open Multi-Processing}
 
 Wieloplatformowy interfejs programowania aplikacji (API) umożliwiający tworzenie programów komputerowych dla systemów wieloprocesorowych z pamięcią dzieloną. Może być wykorzystywany w językach programowania C, C++ i Fortran na wielu architekturach, m.in. Unix i Microsoft Windows. Składa się ze zbioru dyrektyw kompilatora, bibliotek oraz zmiennych środowiskowych mających wpływ na sposób wykonywania się programu.
 
@@ -359,11 +359,19 @@ Liczba bloków CUDA & Czas[s] & Przyspieszenie\\\hline
 1024 & .10 & 118.67\\ \hline 
 \end{tabular}
 \end{table}
-Jak można zauważyć, czas obliczeń znacząco się zmniejsza wraz z rozpoczęciem zwiększania liczby bloków. Wraz z wzrostem liczby bloków różnice pomiędzy sąsiednimi czasami stają się coraz mniejsze. 
+Jak można zauważyć, czas obliczeń znacząco się zmniejsza wraz z rozpoczęciem zwiększania liczby bloków. Wraz z wzrostem liczby bloków różnice pomiędzy sąsiednimi czasami stają się coraz mniejsze. Technologia CUDA pozwala na bardzo duże przyśpieszenie obliczeń równoległych. Dzięki zawartej w kartach graficznych mocy obliczeniowej i zupełnie innej architekturze w porównaniu do jednostek CPU, technologia CUDA pozwala na osiągnięcie dużo większych przyśpieszeń. Po osiągnięciu maksymalnego możliwego przyśpieszenie, wydajność zwalnia gdyż co raz większy wpływ ma narzut wywołany przez tworzenie i obsługę wątków. CUDA znakomicie nadaje się do zrównoleglania obliczeń w których istnieje bardzo duża ilość operacji wykonywanych w kolejnych iteracjach. Najlepszą optymalizację można osiągnąć w przypadku podzielenia zadań na jak najmniejsze części obliczane w osobnych wątkach karty graficznej.
 
 \clearpage
 \section*{6 Wnioski}
+Algorytm RSA jest algorytmem kryptograficznym, który można w znacznym stopniu zrównoleglić. Istnieje wiele miejsc w implementacji tego algorytmu, które nadają się do obliczeń współbieżnych. Jako reprezentatywny fragment wybraliśmy sam algorytm szyfrowania wiadomości. Osiągnięte przyśpieszenia obliczeń zarówno z wykorzystaniem OpenMp jak i technologi CUDA są zadowalające. 
 
+Można jednak zauważyć, że technologia zrównoleglania obliczeń na kartach graficznych z rodziny nVidia dysponuje dużo większym potencjałem i osiągnęła znacznie większe przyśpieszenia względem początkowej wartości. 
+
+Powyższe wyniki i nasze obserwacje prowadzą do wyciągnięcia wniosków iż fragment algorytmu RSA odpowiedzialny za szyfrowanie wiadomości doskonale nadaje się do zrównoleglania. W przypadku OpenMP udało nam się osiągnąć blisko 10 krotne przyśpieszenie i było ono ograniczone liczbą dostępnych wątków na sprzęcie na którym były prowadzone obliczenia. Technologia CUDA osiągnęła prawie 120 krotne przyśpieszenie, co jest doskonałym wynikiem i pokazuje jaki potencjał drzemie w kartach graficznych.
+
+Porównując obie technologie stwierdzamy, że do naszego problemu dużo wydajniejszym rozwiązaniem jest technologia CUDA. Okazała się ona być ponad 10 krotnie wydajniejsza od algorytmu zrównoleglonego z wykorzystaniem OpenMp.
+
+Udało nam się pokazać, że programowanie równoległe może przyczynić się do bardzo dużego wzrostu obliczeń oraz powszechnie wykorzystywanych algorytmów. Należy jednak pamiętać, że każda technologia ma pewne ograniczenia i należy zwracać na nie uwagę podczas pisania programów.
 	
 
 \end{document}
